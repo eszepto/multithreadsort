@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1599162066 source:c:\users\b\desktop\new folder\msort2\main.c
+	<stdio.h>
+	<stdlib.h>
+	<pthread.h>
+
