@@ -2,7 +2,14 @@
 #include <stdlib.h>
 #include <pthread.h>
 int list[] = {92,45,10,13,51,75,25,46,90,44,35,8};
-void  *printi(void *param);
+void *SortList(void *param);
+void *MergeList(void *param);
+void PrintList();
+typedef struct data{
+    int* arr;
+    int start;
+    int stop;
+} data;
 /* C implementation QuickSort */
 // A utility function to swap two elements
 void swap(int* a, int* b)
@@ -56,25 +63,49 @@ void quickSort(int arr[], int low, int high)
 
 int main(int argc, char *argv[])
 {
+    int listLength = sizeof(list)/sizeof(int);
+    int firstStart = 0;
+    int firstStop = listLength/2 - 1;
+    int secondStart = listLength/2;
+    int secondStop = listLength - 1;
 
-    int start = 0;
-    int stop = sizeof(list)/4 - 1;
+    pthread_t sortThread0, sortThread1, mergeThread0;
+    data args1;
+    data args2;
+
+    args1.start = firstStart;
+    args1.stop = firstStop;
+
+    args2.start = secondStart;
+    args2.stop = secondStop;
+
+    pthread_create(&sortThread0, NULL, SortList, &args1);
+    pthread_create(&sortThread1, NULL, SortList, &args2);
+
+    pthread_join(sortThread0,NULL);
+    pthread_join(sortThread1,NULL);
+
+    PrintList();
+}
+
+void *SortList(void *param)
+{   data* ptr = (data*)param;
+    int start = ptr->start;
+    int stop = ptr->stop;
     quickSort(list, start, stop);
-    for(int i=0;i<=sizeof(list)/4;i++)
+    pthread_exit(0);
+
+}
+void *MergeList(void *param)
+{
+
+}
+
+void PrintList()
+{
+    for(int i=0;i<sizeof(list)/4;i++)
     {
         printf("%i ", list[i]);
     }
-    /*
-    pthread_t sortThread0, sortThread1, mergeThread0;
-    pthread_create(&tid0, NULL, printi, NULL);
-    pthread_join(tid0,NULL);
-    */
-
 }
 
-void  *printi(void *param)
-{
-    printf("thread start");
-
-
-}
