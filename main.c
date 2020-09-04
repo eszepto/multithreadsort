@@ -1,18 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-static int list[] = {92,45,10,13,51,75,25,46,90,44,35,8, 3};
+#include <string.h>
+static int list[170];
 int listLength = sizeof(list)/sizeof(int);
+int numThread = 3;
 
 void *SortList(void *param);
-void *MergeList(void *param);
 void PrintList();
+
 typedef struct args{
     int* arr;
+    int threadNumber;
     int start;
     int stop;
 } args;
-/* C implementation QuickSort */
+/* C implementation QuickSort by GeeksforGeeks*/
 // A utility function to swap two elements
 void swap(int* a, int* b)
 {
@@ -62,70 +65,35 @@ void quickSort(int arr[], int low, int high)
         quickSort(arr, pi + 1, high);
     }
 }
-
-int main(int argc, char *argv[])
+void *MergeList(void)
 {
-    int firstStart = 0;
-    int firstStop = listLength/2 - 1;
-    int secondStart = listLength/2;
-    int secondStop = listLength - 1;
+    int eachThread = listLength/numThread;
 
-    pthread_t sortThread0, sortThread1, mergeThread0;
-    args args1, args2;
+    for(int i=0;i<numThread-1;i++)
+    {
+        int firstStart = 0;
+        int firstStop = (eachThread * (i+1))-1;
+        int secondStart = eachThread * (i+1);
+        int secondStop = (eachThread * (i+2))-1;
+        if(i == numThread-1)
+        {
+            secondStop = listLength-1;
+        }
 
-    args1.start = firstStart;
-    args1.stop = firstStop;
-
-    args2.start = secondStart;
-    args2.stop = secondStop;
-
-    pthread_create(&sortThread0, NULL, SortList, &args1);
-    pthread_create(&sortThread1, NULL, SortList, &args2);
-
-    pthread_join(sortThread0, NULL);
-    pthread_join(sortThread1, NULL);
-
-    pthread_create(&mergeThread0, NULL, MergeList, NULL);
-    pthread_join(mergeThread0, NULL);
-
-    PrintList();
+        Merge(firstStart,firstStop,secondStart,secondStop);
+    }
+    pthread_exit(1);
 }
-
-void *SortList(void *param)
+void Merge(int firstStart, int firstStop,int secondStart, int secondStop)
 {
-    args* ptr = (args*)param;
-    int start = ptr->start;
-    int stop = ptr->stop;
-    quickSort(list, start, stop);
-    pthread_exit(0);
-}
-void *MergeList(void *param)
-{
-
-    int firstStart = 0;
-    int firstStop = listLength/2 - 1;
-    int secondStart = listLength/2;
-    int secondStop = listLength - 1;
-
-    int temp[listLength];
-
+    int temp[(firstStop-firstStart+1) + (secondStop-secondStart+1)];
     int runner1 = firstStart;
     int runner2 = secondStart;
 
     int i = 0;
-    while(i<listLength)
+    while(runner1 <= firstStop  && runner2 <= secondStop)
     {
-        if(runner1 > firstStop)
-        {
-            temp[i] = list[runner2];
-            runner2 += 1;
-        }
-        else if(runner2 > secondStop)
-        {
-            temp[i] = list[runner1];
-            runner1 += 1;
-        }
-        else if(list[runner1] < list[runner2])
+        if(list[runner1] < list[runner2])
         {
             temp[i] = list[runner1];
             runner1 += 1;
@@ -138,12 +106,75 @@ void *MergeList(void *param)
 
         i++;
     };
-    for(int i=0;i<listLength;i++)
+    while(runner1 <= firstStop)
     {
-        list[i] = temp[i];
+        temp[i] = list[runner1];
+        runner1++;
+        i++;
+    }
+    while(runner2 <= secondStop)
+    {
+        temp[i] = list[runner2];
+        runner2++;
+        i++;
+    }
+    int tempLength = sizeof(temp)/sizeof(int);
+    for(int j=0;j<tempLength;j++)
+    {
+        list[j] = temp[j];
     }
 
 }
+int main(int argc, char *argv[])
+{
+    numThread = atoi(argv[1]);
+
+    for(int i=0;i<listLength;i++)
+    {
+        list[i]=rand()%listLength;
+    }
+    printf("list length = %d\n", listLength);
+
+    int eachThread = listLength/numThread;
+
+    pthread_t sortThread[numThread], mergeThread0;
+
+    args arg[numThread];
+    for(int i=0;i<numThread;i++)
+    {
+        arg[i].threadNumber = i;
+        arg[i].start = (eachThread * i);
+        arg[i].stop = (eachThread * (i+1)) - 1;
+    }
+    arg[numThread-1].stop += listLength - (eachThread * numThread);
+
+    for(int i = 0;i<numThread;i++)
+    {
+        pthread_create(&sortThread[i], NULL, SortList, &arg[i]);
+    }
+    for(int i = 0;i<numThread;i++)
+    {
+        pthread_join(sortThread[i], NULL);
+    }
+
+    pthread_create(&mergeThread0, NULL, MergeList, NULL);
+    pthread_join(mergeThread0, NULL);
+
+    PrintList();
+}
+
+
+
+void *SortList(void *param)
+{
+    args* ptr = (args*)param;
+    int start = ptr->start;
+    int stop = ptr->stop;
+    printf("init threadnum = %d ; start = %d ; stop = %d ;\n", ptr->threadNumber, start, stop);
+    quickSort(list, start, stop);
+    pthread_exit(0);
+}
+
 
 void PrintList()
 {
